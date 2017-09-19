@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<script type="text/javascript" src="js/jquery.min.js" ></script>
+		<script type="text/javascript" src="lib/circle_JT_min.js" ></script>
+		<title>canvas画图</title>
+	</head>
+	<body>
+		<div id="dom" style="margin-left: 30%"></div>
+		<script>
+			$.circleJt({
+				domId:'dom',//必须
+				radius:300,//必须
+				pbColor:'#00796b',//必需
+                pbWidth:20,//非必需
+              	value:0,//必须
+              	totalValue:1000,//非必需
+              	percentage:true,//非必需
+                fontSize:100,
+                
+                clock:true,//如果clock为真的时候，上述属性除value,totalValue,percentage均全都无效
+                digitalWatch:true//以电子表形式显示
+			});
+			
+			
+		</script>
+	</body>
+</html>

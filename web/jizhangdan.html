@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="css/voucher.css">
+    <link rel="stylesheet" href="css/common.css">
+    <style type="text/css">
+        body {
+            font: 12px/1.5 宋体;
+            font-weight: normal;
+            font-size: 12px;
+        }
+    </style>
+
+
+    <script type="text/javascript" src="assets/jquery.min.js"></script>
+    <script type="text/javascript" src="js/plugins.js"></script>
+
+    <script type="text/javascript">
+        Public = {};
+        Public.isTemp = true;
+        //快捷键
+        Public.keyCode = {
+            ALT: 18,
+            BACKSPACE: 8,
+            CAPS_LOCK: 20,
+            COMMA: 188,
+            COMMAND: 91,
+            COMMAND_LEFT: 91, // COMMAND
+            COMMAND_RIGHT: 93,
+            CONTROL: 17,
+            DELETE: 46,
+            DOWN: 40,
+            END: 35,
+            ENTER: 13,
+            ESCAPE: 27,
+            HOME: 36,
+            INSERT: 45,
+            LEFT: 37,
+            MENU: 93, // COMMAND_RIGHT
+            NUMPAD_ADD: 107,
+            NUMPAD_DECIMAL: 110,
+            NUMPAD_DIVIDE: 111,
+            NUMPAD_ENTER: 108,
+            NUMPAD_MULTIPLY: 106,
+            NUMPAD_SUBTRACT: 109,
+            PAGE_DOWN: 34,
+            PAGE_UP: 33,
+            PERIOD: 190,
+            RIGHT: 39,
+            SHIFT: 16,
+            SPACE: 32,
+            TAB: 9,
+            UP: 38,
+            F7: 118,
+            F12: 123,
+            S: 83,
+            WINDOWS: 91 // COMMAND
+        }
+
+        var keyCode = Public.keyCode,
+            ENTER = keyCode.ENTER,
+            TAB = keyCode.TAB,
+            F7 = keyCode.F7,
+            SPACE = keyCode.SPACE,
+            F12 = keyCode.F12,
+            KEY_S = keyCode.S,
+            ESC = keyCode.ESCAPE,
+            Voucher = {};
+
+        Voucher.delEntry = function (a) {
+            $("#voucher .entry_item").length > 2 ?
+                (a.next("tr.extra_item").length > 0 && a.next("tr.extra_item").remove(), a.remove()) : alert("至少保留二条分录！")
+        }, Voucher.showAmout = function (a, b) {
+            a = $(a), b = parseFloat(b), isNaN(b) || (b = b.toFixed(2), a.data("realValue", b), b = Math.round(100 * b), b >= 0 ? a.removeClass("money-negative") : (b = -b, a.addClass("money-negative")), a.text(b || ""))
+        }, Voucher.calTotalAmount = function () {
+            var a = Voucher.getTotalAccountAmount("debit"),
+                b = Voucher.getTotalAccountAmount("credit");
+            if (Voucher.showAmout($("#debit_total"), a), Voucher.showAmout($("#credit_total"), b), a == b && 0 != a) {
+                var c = Voucher.formatAmountToChinese(a);
+                $("#capAmount").text(c), a > 0 ? $("#capAmount").removeClass("money-negative") : $("#capAmount").addClass("money-negative")
+            } else $("#capAmount").text("")
+        }, Voucher.formatAmountToChinese = function (a) {
+            if (a = parseFloat(a), !isNaN(a)) {
+                a = Math.round(100 * a);
+                var b, c, d, e = a % 100 == 0 ? !0 : !1,
+                    f = ["零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖"],
+                    g = ["分", "角", "元", "拾", "佰", "仟", "万", "拾", "佰", "仟", "亿", "拾", "佰", "仟"],
+                    h = "",
+                    i = 0;
+                if (0 == a) return "零元整";
+                0 > a && (h += "负", a = -a), a = a.toString(), d = a.length;
+                for (var j = 0; d > j; j++) b = parseInt(a.charAt(j)), c = d - 1 - j, 0 == b ? 2 == c || 6 == c || 11 == c ? (h += g[c], i = 0) : i++ : (i > 0 && (h += "零", i = 0), h = h + f[b] + g[c]);
+                return e && (h += "整"), h
+            }
+        }, Voucher.getTotalAccountAmount = function (a) {
+            var b, c, d = 0;
+            return "credit" == a ? b = $("#voucher .entry_item .credit_val") : "debit" == a && (b = $("#voucher .entry_item .debit_val")), $.each(b, function (a) {
+                c = 100 * parseFloat($(this).data("realValue")), isNaN(c) || (c = Math.round(c), d += c)
+            }), d / 100
+        }, Voucher.setAmountFocus = function (a, b) {
+            var c = a.find(".col_debite"),
+                d = c.find(".debit_val").text(),
+                e = a.find(".col_credit"),
+                f = e.find(".credit_val").text();
+            return "" !== d ? void c.trigger("click") : "" !== f ? void e.trigger("click") : null == b ? void c.trigger("click") : 0 === $(".entry_item").index(a) ? void c.trigger("click") : 1 == b.dc ? void c.trigger("click") : -1 == b.dc ? void e.trigger("click") : void 0
+        }, Voucher.addEntry = function (a) {
+            var b = ['<tr class="entry_item">', '<td class="col_operate"><div class="operate"><a title="增加分录" class="add"></a><a title="删除分录" class="del"></a></div></td>', '<td class="col_summary" data-edit="summary"><div class="cell_val summary_val"></div></td>', '<td class="col_option"><div class="option"><a class="selSummary">摘要</a></div></td>', '<td class="col_subject" data-edit="subject"><div class="subject-dtl"><div class="cell_val subject_val"></div></div></td>', '<td class="col_option"><div class="option"><a class="selSub">科目</a></div></td>', '<td class="col_quantity"><div class="cell_val quantity_val"></div></td>', '<td class="col_currency"><div class="cell_val curr_val"></div></td>', '<td class="col_debite" data-edit="money"><div class="cell_val debit_val"></div></td>', '<td class="col_credit" data-edit="money"><div class="cell_val credit_val"></div></td>', "</tr>"].join("");
+            a ? a.before(b) : $("#voucher > tbody").append(b)
+        }
+
+
+        Voucher.activateEdit = function () {
+            $("#voucher").on("click", "td[data-edit]", function (a) {
+                Voucher.editCell($(this))
+            }), $("#voucher").on("mouseover", "tbody .entry_item", function (a) {
+                $(this).addClass("current").siblings().removeClass("current")
+            }), $("#voucher").on("mouseleave", "tbody .entry_item", function (a) {
+                $(this).removeClass("current")
+            })
+        }, Voucher.deactivateEdit = function () {
+            $("#voucher").off("click", "td[data-edit]"), $("#voucher").off("mouseover", "tbody .entry_item"), $("#voucher").off("mouseleave", "tbody .entry_item"), Voucher.cancelEdit()
+        }, Voucher.editCell = function (a) {
+            if ($(window).scrollTop(a.offset().top - 120), !a.data("onEdit")) {
+                if (Voucher.curEditCell && !Voucher.cancelEdit()) return !1;
+                Voucher.curEditCell = a.data("onEdit", !0);
+                var b, c, d = a.attr("data-edit"),
+                    e = a.find(".cell_val").hide();
+                if (d) {
+                    switch (d) {
+                        case "summary":
+                            Voucher.curEditField = $("#voucher .edit_summary"), 0 == Voucher.curEditField.length && (Voucher.createSummaryFeild(), Voucher.curEditField = Voucher.summaryFeild), b = e.text();
+                            break;
+                        case "subject":
+                            Voucher.curEditField = $("#voucher .edit_subject"), 0 == Voucher.curEditField.length && (Voucher.createSubjectFeild(), Voucher.curEditField = Voucher.subjectFeild), c = e.text() , b = c;
+                            break;
+                        case "money":
+                            Voucher.curEditField = $("#voucher .edit_money"), 0 == Voucher.curEditField.length && (Voucher.createMoneyFeild(), Voucher.curEditField = Voucher.moneyFeild), b = e.data("realValue"), 0 == b && (b = "")
+                    }
+                    Voucher.curEditField.insertAfter(e).show(), $(".edit-row").removeClass("edit-row"), a.parent("tr").addClass("edit-row"), "subject" == d ? Voucher.curEditField.val(b) : Voucher.curEditField.val(b);
+                    window.setTimeout(function () {
+                        Voucher.curEditField.val() ? Voucher.curEditField.select() : Voucher.curEditField.select().focus()
+                    }, 0)
+                }
+            }
+        }, Voucher.cancelEdit = function () {
+            if (Voucher.curEditCell) {
+                var a = Voucher.curEditCell,
+                    b = realValue = Voucher.curEditField.val(),
+                    c = a.find(".cell_val"),
+                    d = c.data("itemsData"),
+                    e = c.data("subjectInfo");
+                if ("money" == a.data("edit")) b = parseFloat(b), isNaN(b) ? b = 0 : Math.abs(b) >= 1e9 && (b = 0, Public.tips({
+                    type: 2,
+                    content: "只能输入10亿以下的金额！"
+                })), Voucher.showAmout(c, b), Voucher.calTotalAmount();
+                else if ("subject" == a.data("edit")) {
+                    /*
+                    alert(b + '  ' + e);
+                    if ($("#isItem").hide(), $("#voucher .edit_subject").length > 0) {
+                        if (b = $("#voucher .edit_subject").innerHTML, e && e.isItem) {
+                            b += "<span>_";
+                            for (var f = ["itemKH", "itemGYS", "itemZY", "itemXM", "itemBM", "itemCH", "itemZDY", "itemSFXD"], g = 0, h = f.length; h > g; g++) {
+                                var i = d[f[g]];
+                                if (i && "itemCH" != f[g]) {
+                                    var j = i.number || "";
+                                    b += j + " " + i.name + "_"
+                                } else if (i && "itemCH" == f[g]) {
+                                    var j = i.number || "",
+                                        k = i.spec || "";
+                                    b += j + " " + i.name + " " + k + "_"
+                                }
+                            }
+                            b = b.slice(0, b.length - 1), b += "</span>"
+                        }
+                    } else b = "";*/
+                    c.html(b)
+                } else c.text(b);
+                return c.show(), c.hasClass("subject_val") && c.css("display", "table-cell"), Voucher.curEditField.hide(), a.data("onEdit", !1), Voucher.curEditCell = null, !0
+            }
+        }, Voucher.createMoneyFeild = function () {
+            Voucher.moneyFeild = $('<input type="text" class="edit_money" autocomplete="off" />').numberField({
+                decimal: !0,
+                max: 999999999.99,
+                keyEnable: !1
+            }).bind("keydown", function (a) {
+                var b = a.which,
+                    c = $(this).val(),
+                    d = $(this).parent(),
+                    e = $(this).parents("tr.entry_item"),
+                    f = e.next();
+                if (a.shiftKey && (b === ENTER || b === TAB)) return e.find(".col_subject").trigger("click"), !1;
+                switch (d.hasClass("col_debite") ? e.find(".credit_val").data("realValue", 0).text("") : e.find(".debit_val").data("realValue", 0).text(""), b) {
+                    case ENTER:
+                    case TAB:
+                        if (a.preventDefault(), "" != $(this).val()) {
+                            if (0 == f.length && (Voucher.addEntry(), f = e.next()), Math.abs($(this).val()) >= 1e9) return Public.tips({
+                                type: 2,
+                                content: "只能输入10亿以下的金额！"
+                            }), void $(this).select();
+                            f.find(".col_summary").trigger("click")
+                        } else d.hasClass("col_debite") && d.next().trigger("click");
+                        return !1;
+                    case SPACE:
+                        var g;
+                        return g = d.hasClass("col_debite") ? e.find(".col_credit") : e.find(".col_debite"), $(this).val(""), g.find(".cell_val").text(c).data("realValue", c), g.trigger("click"), !1
+                }
+            }).bind("keyup", function (a) {
+                //alert("123")
+            }).bind("focus", function () {
+                Voucher.originalAmount = "" === $(this).val() ? 0 : Number($(this).val()).toFixed(2)
+            })
+        }, Voucher.createSummaryFeild = function () {
+            var a = $("#voucher tbody tr.entry_item");
+            Voucher.summaryFeild = $('<input type="text" class="edit_summary" autocomplete="off" />').on("keydown", function (a) {
+                var b = $(this),
+                    c = a.which,
+                    d = b.parents("tr.entry_item"),
+                    e = d.prev();
+                if (a.shiftKey && (c == ENTER || c == TAB)) return 0 === e.length ? $("#vch_date").focus() : Voucher.setAmountFocus(e), !1;
+                switch (c) {
+                    case ENTER:
+                    case TAB:
+                        a.preventDefault(), d.find(".col_subject").trigger("click");
+                        break;
+                    case F7:
+                    <!-- a.preventDefault(), Voucher.summaryPop(b) -->
+                }
+            }) /*.on("focus", function (a) {
+                !function (a) {
+                    if (!a.val())
+                        for (var b, c = $("#voucher .summary_val"), d = a.prev(".summary_val").index("#voucher .summary_val"), e = d - 1; e >= 0; e--)
+                            if (b = $.trim(c.eq(e).text())) return void a.val(b)
+                }($(this))
+            }) */.on("keyup", function () {
+                var b = $(this).parents("tr.entry_item"),
+                    c = b.prev(),
+                    d = $(this).val();
+                a.index(b);
+                if (0 !== c.length)
+                    if ("//" === d) {
+                        var e = $("tr.entry_item").eq(0);
+                        $(this).val(e.find(".summary_val").html())
+                    } else if (".." === d) {
+                        var f = c.find(".summary_val").html();
+                        $(this).val(f)
+                    }
+            })
+        }, Voucher.createSubjectFeild = function () {
+            var a = $("#voucher tbody tr.entry_item");
+            Voucher.subjectFeild = $('<input type="text" class="edit_subject" autocomplete="off" />').on("keydown", function (a) {
+                var b = $(this),
+                    c = a.which,
+                    d = b.parents("tr.entry_item"),
+                    e = d.prev();
+                if (a.shiftKey && (c == ENTER || c == TAB)) return 0 === e.length ? $("#vch_date").focus() : Voucher.setAmountFocus(e), !1;
+                switch (c) {
+                    case ENTER:
+                    case TAB:
+                        a.preventDefault(), d.find(".col_quantity").trigger("click");
+                        break;
+                    case F7:
+                    <!-- a.preventDefault(), Voucher.summaryPop(b) -->
+                }
+            })/*.on("focus", function (a) {
+                !function (a) {
+                    if (!a.val())
+                        for (var b, c = $("#voucher .subject_val"), d = a.prev(".subject_val").index("#voucher .subject_val"), e = d - 1; e >= 0; e--)
+                            if (b = $.trim(c.eq(e).text())) return void a.val(b)
+                }($(this))
+            })*/.on("keyup", function () {
+                var b = $(this).parents("tr.entry_item"),
+                    c = b.prev(),
+                    d = $(this).val();
+                a.index(b);
+                if (0 !== c.length)
+                    if ("//" === d) {
+                        var e = $("tr.entry_item").eq(0);
+                        $(this).val(e.find(".subject_val").html())
+                    } else if (".." === d) {
+                        var f = c.find(".subject_val").html();
+                        $(this).val(f)
+                    }
+            })
+        };
+
+
+        var initEven = function (a) {
+            $(".entry_item").on("mouseover", function (a) {
+                $(this).addClass("current").siblings().removeClass("current")
+            }), $(".entry_item").on("mouseleave", function (a) {
+                $(this).removeClass("current")
+            });
+        }
+
+        $(document).ready(function (a) {
+            initEven(a);
+            $(".voucher").on("click", ".del", function (a) {
+                a.preventDefault(), Voucher.delEntry($(this).parents(".entry_item")), initEven(a)
+            }), $(".voucher").on("click", ".add", function (a) {
+                a.preventDefault(), Voucher.addEntry($(this).parents(".entry_item")), initEven(a)
+            });
+            Voucher.activateEdit();
+            Voucher.createMoneyFeild();
+        });
+
+
+    </script>
+
+</head>
+<body>
+<div class="voucher_wrap">
+    <div class="voucher_top">
+        <div class="mark_wrap"><span class="txt">凭证字</span> <span class="ui-combo-wrap" id="vch_mark"
+                                                                  style="width: 58px;">
+        <input type="text" name="" class="input-txt" autocomplete="off" value="" readonly
+               style="cursor: default; width: 32px;">
+        <i class="trigger"></i></span> <span class="ui-spinbox-wrap">
+        <input type="text" class="ui-spinbox input-txt" id="vch_num" autocomplete="off">
+        <span class="btn-wrap"><a class="btn-up"></a><a class="btn-down"></a></span></span><span class="txt">号</span>
+            <span class="date_wrap"> <span class="txt">日期</span>
+        <input type="text" class="ui-input ui-datepicker-input" id="vch_date">
+        </span></div>
+        <div class="tit_wrap">
+            <h1 class="voucher_tit">记账凭证</h1>
+            <span id="vch_year">2014</span>年第<span id="vch_period">1</span>期
+        </div>
+        <span class="attach_wrap"> 附单据
+      <input type="text" class="ui-input" id="vch_attach" value="0">
+      张 </span></div>
+    <table class="voucher" id="voucher">
+        <thead>
+        <tr>
+            <th class="col_operate"></th>
+            <th class="col_summary" colspan="2">摘要</th>
+            <th class="col_subject" colspan="2">会计科目</th>
+            <th class="col_quantity">数量</th>
+            <th class="col_currency">币别</th>
+            <th class="col_money"><strong class="tit">借方金额</strong>
+                <div class="money_unit"><span>亿</span> <span>千</span> <span>百</span> <span>十</span> <span>万</span>
+                    <span>千</span> <span>百</span> <span>十</span> <span>元</span> <span>角</span> <span
+                            class="last">分</span></div>
+            </th>
+            <th class="col_money col_credit"><strong class="tit">贷方金额</strong>
+                <div class="money_unit"><span>亿</span> <span>千</span> <span>百</span> <span>十</span> <span>万</span>
+                    <span>千</span> <span>百</span> <span>十</span> <span>元</span> <span>角</span> <span
+                            class="last">分</span></div>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr class="entry_item edit-row">
+            <td class="col_operate">
+                <div class="operate"><a title="增加分录" class="add"></a><a title="删除分录" class="del"></a></div>
+            </td>
+            <td class="col_summary" data-edit="summary">
+                <div class="cell_val summary_val" style="display: block;"></div>
+            <td class="col_option">
+                <div class="option"><a class="selSummary">摘要</a></div>
+            </td>
+            <td class="col_subject" data-edit="subject">
+                <div class="subject-dtl">
+                    <div class="cell_val subject_val"></div>
+                </div>
+            </td>
+            <td class="col_option">
+                <div class="option"><a class="selSub">科目</a></div>
+            </td>
+            <td class="col_quantity">
+                <div class="cell_val quantity_val"></div>
+            </td>
+            <td class="col_currency">
+                <div class="cell_val curr_val"></div>
+            </td>
+            <td class="col_debite" data-edit="money">
+                <div class="cell_val debit_val"></div>
+            </td>
+            <td class="col_credit" data-edit="money">
+                <div class="cell_val credit_val"></div>
+            </td>
+        </tr>
+        <tr class="entry_item">
+            <td class="col_operate">
+                <div class="operate"><a title="增加分录" class="add"></a><a title="删除分录" class="del"></a></div>
+            </td>
+            <td class="col_summary" data-edit="summary">
+                <div class="cell_val summary_val"></div>
+            </td>
+            <td class="col_option">
+                <div class="option"><a class="selSummary">摘要</a></div>
+            </td>
+            <td class="col_subject" data-edit="subject">
+                <div class="subject-dtl">
+                    <div class="cell_val subject_val"></div>
+                </div>
+            </td>
+            <!-- <td class="col_subject" data-edit="subject"><div class="cell_val subject_val"></div></td> -->
+            <td class="col_option">
+                <div class="option"><a class="selSub">科目</a></div>
+            </td>
+            <td class="col_quantity">
+                <div class="cell_val quantity_val"></div>
+            </td>
+            <td class="col_currency">
+                <div class="cell_val curr_val"></div>
+            </td>
+            <td class="col_debite" data-edit="money">
+                <div class="cell_val debit_val"></div>
+            </td>
+            <td class="col_credit" data-edit="money">
+                <div class="cell_val credit_val"></div>
+            </td>
+        </tr>
+        <tr class="entry_item">
+            <td class="col_operate">
+                <div class="operate"><a title="增加分录" class="add"></a><a title="删除分录" class="del"></a></div>
+            </td>
+            <td class="col_summary" data-edit="summary">
+                <div class="cell_val summary_val"></div>
+            </td>
+            <td class="col_option">
+                <div class="option"><a class="selSummary">摘要</a></div>
+            </td>
+            <td class="col_subject" data-edit="subject">
+                <div class="subject-dtl">
+                    <div class="cell_val subject_val"></div>
+                </div>
+            </td>
+            <!-- <td class="col_subject" data-edit="subject"><div class="cell_val subject_val"></div></td> -->
+            <td class="col_option">
+                <div class="option"><a class="selSub">科目</a></div>
+            </td>
+            <td class="col_quantity">
+                <div class="cell_val quantity_val"></div>
+            </td>
+            <td class="col_currency">
+                <div class="cell_val curr_val"></div>
+            </td>
+            <td class="col_debite" data-edit="money">
+                <div class="cell_val debit_val"></div>
+            </td>
+            <td class="col_credit" data-edit="money">
+                <div class="cell_val credit_val"></div>
+            </td>
+        </tr>
+        <tr class="entry_item">
+            <td class="col_operate">
+                <div class="operate"><a title="增加分录" class="add"></a><a title="删除分录" class="del"></a></div>
+            </td>
+            <td class="col_summary" data-edit="summary">
+                <div class="cell_val summary_val"></div>
+            </td>
+            <td class="col_option">
+                <div class="option"><a class="selSummary">摘要</a></div>
+            </td>
+            <td class="col_subject" data-edit="subject">
+                <div class="subject-dtl">
+                    <div class="cell_val subject_val"></div>
+                </div>
+            </td>
+            <!-- <td class="col_subject" data-edit="subject"><div class="cell_val subject_val"></div></td> -->
+            <td class="col_option">
+                <div class="option"><a class="selSub">科目</a></div>
+            </td>
+            <td class="col_quantity">
+                <div class="cell_val quantity_val"></div>
+            </td>
+            <td class="col_currency">
+                <div class="cell_val curr_val"></div>
+            </td>
+            <td class="col_debite" data-edit="money">
+                <div class="cell_val debit_val"></div>
+            </td>
+            <td class="col_credit" data-edit="money">
+                <div class="cell_val credit_val"></div>
+            </td>
+        </tr>
+        </tbody>
+        <tfoot>
+        <tr>
+            <td class="col_operate"></td>
+            <td colspan="4" class="col_total">合计：<span id="capAmount"></span></td>
+            <td class="col_debite">
+                <div class="cell_val debit_total" id="debit_total"></div>
+            </td>
+            <td class="col_credit">
+                <div class="cell_val credit_total" id="credit_total"></div>
+            </td>
+        </tr>
+        </tfoot>
+    </table>
+    <div class="vch_ft"><span id="modifyTime">最后修改时间：<span></span></span> <span id="createTime">录入时间：<span>123456789123456789</span></span>
+        <span class="fr f12 g6 dn" id="ldr_people">审核人：<span></span></span> 制单人：<span id="vch_people">体验用户</span></div>
+    <div id="tag"></div>
+    <!--状态标准-->
+</div>
+
+
+<div class="mod-toolbar-bottom" id="toolBottom">
+    <script type="text/javascript">
+        if(Public.isTemp)
+            document.write('<div class="fr"><a class="ui-btn ui-btn-sp" id="renewB">保存并新增</a><a class="ui-btn m0" id="saveB">保存</a></div>');
+    </script>
+</div>
+<div class="zhengbao-pic"></div>
+
+
+</body>
+</html>
